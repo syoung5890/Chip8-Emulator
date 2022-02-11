@@ -47,7 +47,26 @@ public class Chip8 {
 		String s = Integer.toHexString(instruction);
 		
 		switch(s.charAt(0)) {
-		
+		case '0':
+			clearScreen();
+			break;
+		case '1':
+			jump();
+			break;
+		case '6':
+			setRegister();
+			break;
+		case '7':
+			addToRegister();
+			break;
+		case 'a':
+			setIndexRegister();
+			break;
+		case 'd':
+			draw();
+			break;
+		default:
+			break;
 		}
 	}
 }
