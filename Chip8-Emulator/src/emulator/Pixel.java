@@ -20,7 +20,7 @@ public class Pixel {
 		return this.color;
 	}
 	
-	public void setPixel(Color c) {
+	public void setColor(Color c) {
 		this.color = c.getRGB();
 	}
 }

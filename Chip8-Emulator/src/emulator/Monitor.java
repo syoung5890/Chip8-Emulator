@@ -1,6 +1,7 @@
 package emulator;
 
 import java.awt.*;
+
 import java.awt.image.BufferedImage;
 
 import javax.swing.*;
@@ -26,8 +27,10 @@ public class Monitor {
 	public Monitor() {
 		pixels = new Pixel[WIDTH][HEIGHT];
 		setPixels();
-		pixels[25][7].setPixel(WHITE);
 		image = new BufferedImage(WIDTH * PIXEL_SIZE, HEIGHT * PIXEL_SIZE,BufferedImage.TYPE_INT_RGB);
+		flipPixel(5,7);
+		flipPixel(5,20);
+		flipPixel(5,7);
 		loadImage();
 		initiateWindow();
 	}
@@ -38,6 +41,21 @@ public class Monitor {
 			for(int j = 0;j<HEIGHT*PIXEL_SIZE;j++) {
 				image.setRGB(i, j, pixels[(i-(i%PIXEL_SIZE))/PIXEL_SIZE][(j-(j%PIXEL_SIZE))/PIXEL_SIZE].getColor());
 				System.out.println("x: " + i + " y: " + j + " pixel" +((i-(i%PIXEL_SIZE))/PIXEL_SIZE) + " "  +((j-(j%PIXEL_SIZE))/PIXEL_SIZE) );
+			}
+		}
+	}
+	
+	public void flipPixel(int x, int y) {
+		if(pixels[x][y].getColor() == WHITE.getRGB()) {
+			pixels[x][y].setColor(BLACK);
+		}
+		else {
+			pixels[x][y].setColor(WHITE);
+		}
+		
+		for(int i = (x * PIXEL_SIZE);i<((x+1)* PIXEL_SIZE);i++) {
+			for(int j = (y* PIXEL_SIZE); j<((y+1)*PIXEL_SIZE);j++){
+				image.setRGB(i, j, pixels[x][y].getColor());
 			}
 		}
 	}
@@ -63,25 +81,6 @@ public class Monitor {
 	}
 
 	
-/*	public Monitor() {
-		JFrame f = new JFrame("CHIP-8 Emulator");
-		panel = new JPanel();
-		label = new JLabel();
-		image =new BufferedImage(640,320,BufferedImage.TYPE_INT_RGB);
-		for(int i = 0; i<640;i++) {
-			for(int j = 0;j<320;j++) {
-				image.setRGB(i, j, BLACK.getRGB());
-			}
-		}
-		
-		label.setIcon(new ImageIcon(image));
-		panel.add(label);
-		f.add(panel);
-		f.setSize(640, 320);
-		f.setResizable(false);
-		f.setVisible(true);
-	}
-*/	
 	public static void main(String[]args) {
 		Monitor m = new Monitor();
 	}
