@@ -1,4 +1,4 @@
-package emulator;
+ package emulator;
 
 public class Chip8 {
 	
@@ -30,39 +30,45 @@ public class Chip8 {
 	}
 	
 	public void run() {
-		int instruction = fetch();
-		execute(instruction);
+		int instr = fetch();
+		execute(instr);
 	}
 	
 	private int fetch() {
-		int instruction;
-		instruction = (int)mem[pc];
-		instruction = (instruction<<8) + (int)mem[pc+1];
+		int instr;
+		instr = (int)mem[pc];
+		instr = (instr<<8) + (int)mem[pc+1];
 		pc += 2;
-		return instruction;
+		return instr;
 	}
 	
-	private void execute(int instruction) {
+	private void execute(int instr) {
 		//rename this variable
-		String s = Integer.toHexString(instruction);
+		int lead = (instr - (instr % 0x1000)) / 0x1000;
+		int x = ((instr - (lead * 0x1000)) - (instr %0x100))/0x100;
+		int y = ((instr -(lead*0x1000) - (x * 0x100)) - (instr % 0x10))/0x10;
+		int n = instr - (lead *0x1000) - (x*0x100) - (y * 0x10);
+		int nn = instr % 0x100;
+		int nnn = instr % 0x1000;
+		String s = Integer.toHexString(instr);
 		
-		switch(s.charAt(0)) {
-		case '0':
+		switch(lead)) {
+		case 0x0:
 			clearScreen();
 			break;
-		case '1':
+		case 0x1:
 			jump();
 			break;
-		case '6':
+		case 0x6:
 			setRegister();
 			break;
-		case '7':
+		case 0x7:
 			addToRegister();
 			break;
-		case 'a':
+		case 0xA:
 			setIndexRegister();
 			break;
-		case 'd':
+		case 0xD:
 			draw();
 			break;
 		default:
