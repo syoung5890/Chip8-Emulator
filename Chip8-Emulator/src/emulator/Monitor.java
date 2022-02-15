@@ -40,7 +40,7 @@ public class Monitor {
 		for(int i = 0; i<WIDTH*PIXEL_SIZE;i++) {
 			for(int j = 0;j<HEIGHT*PIXEL_SIZE;j++) {
 				image.setRGB(i, j, pixels[(i-(i%PIXEL_SIZE))/PIXEL_SIZE][(j-(j%PIXEL_SIZE))/PIXEL_SIZE].getColor());
-				System.out.println("x: " + i + " y: " + j + " pixel" +((i-(i%PIXEL_SIZE))/PIXEL_SIZE) + " "  +((j-(j%PIXEL_SIZE))/PIXEL_SIZE) );
+				//System.out.println("x: " + i + " y: " + j + " pixel" +((i-(i%PIXEL_SIZE))/PIXEL_SIZE) + " "  +((j-(j%PIXEL_SIZE))/PIXEL_SIZE) );
 			}
 		}
 	}
@@ -78,6 +78,26 @@ public class Monitor {
 		frame.setSize(WIDTH*PIXEL_SIZE,HEIGHT*PIXEL_SIZE);
 		frame.setResizable(false);
 		frame.setVisible(true);
+	}
+	
+	public void setPixel(int x,int y, int color) {
+		if(color == 1) {
+			pixels[x][y].setColor(WHITE);
+		}
+		else if(color == 0) {
+			pixels[x][y].setColor(BLACK);
+		}
+		
+	}
+	
+	public void clearScreen() {
+		for(int i = 0;i<WIDTH;i++) {
+			for(int j = 0;j<HEIGHT;j++) {
+				pixels[i][j].setColor(BLACK);
+			}
+		}
+		loadImage();
+		label.repaint();
 	}
 
 	

@@ -20,5 +20,9 @@ public class RomReader {
 		
 	}
 	
+	public byte[] getMemoryArray() {
+		return rom;
+	}
+	
 		
 }
