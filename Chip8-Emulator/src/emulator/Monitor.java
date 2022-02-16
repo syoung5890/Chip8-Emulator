@@ -28,9 +28,6 @@ public class Monitor {
 		pixels = new Pixel[WIDTH][HEIGHT];
 		setPixels();
 		image = new BufferedImage(WIDTH * PIXEL_SIZE, HEIGHT * PIXEL_SIZE,BufferedImage.TYPE_INT_RGB);
-		flipPixel(5,7);
-		flipPixel(5,20);
-		flipPixel(5,7);
 		loadImage();
 		initiateWindow();
 	}
@@ -50,6 +47,7 @@ public class Monitor {
 			pixels[x][y].setColor(BLACK);
 		}
 		else {
+			System.out.println("Updating pixel "+ x + " " + y);
 			pixels[x][y].setColor(WHITE);
 		}
 		
@@ -58,6 +56,9 @@ public class Monitor {
 				image.setRGB(i, j, pixels[x][y].getColor());
 			}
 		}
+		
+		
+		//label.repaint();
 	}
 	
 	private void setPixels() {
@@ -99,10 +100,17 @@ public class Monitor {
 		loadImage();
 		label.repaint();
 	}
-
+	
+	public void updateScreen() {
+		label.repaint();
+		label.revalidate();
+	}
 	
 	public static void main(String[]args) {
-		Monitor m = new Monitor();
+		int i = 67;
+		int b = 32;
+		int c = i & b;
+		System.out.println(c);
 	}
 }
 

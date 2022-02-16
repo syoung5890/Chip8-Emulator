@@ -29,6 +29,7 @@ public class Chip8 {
 		monitor = new Monitor();
 		reader = new RomReader(".\\src\\Roms\\IBMLogo.ch8");
 		pc = 0x200;
+		I = 0;
 		loadMemory();
 		run();
 	}
@@ -37,7 +38,12 @@ public class Chip8 {
 		byte[] rom = reader.getMemoryArray();
 		for(int i = 0;i<rom.length;i++) {
 			mem[0x200+i] = (char)Byte.toUnsignedInt(rom[i]);
+			System.out.println(Integer.toHexString((int)mem[0x200+i]));
 		}
+	}
+	
+	private void setSprites() {
+		
 	}
 	
 	public void decrementTimer() {
@@ -48,6 +54,7 @@ public class Chip8 {
 	
 	public void run() {
 		while(running) {
+			System.out.println((int)pc);
 			int instr = fetch();
 			execute(instr);
 		}
@@ -74,7 +81,7 @@ public class Chip8 {
 			clearScreen();
 			break;
 		case 0x1:
-			jump(nnn);
+			// jump(nnn);
 			break;
 		case 0x6:
 			setRegister(x,nn);
@@ -94,29 +101,42 @@ public class Chip8 {
 			break;
 		}
 	}
-
+	
+	//Needs some fixing up
 	private void draw(int x, int y, int n) {
-		// TODO Auto-generated method stub
+		System.out.println(I);
+		int xCoord = V[x] % 64;
+		int yCoord = V[y] % 32;
+		V[0xf] = 0x0;
+		for(int j = yCoord; j <= yCoord + n;j++) {
+			for(int i = xCoord; i<= xCoord + 4;i++) {
+				if((I & (int)Math.pow(2, 4-(i-xCoord))) == Math.pow(2, 4-(i-xCoord))) {
+					System.out.println("flipping pixel");
+					monitor.flipPixel(i, j);
+				}
+			}
+		}
+		monitor.updateScreen();
 		
 	}
 
 	private void setIndexRegister(int nnn) {
-		// TODO Auto-generated method stub
+		I = nnn;
 		
 	}
 
 	private void addToRegister(int x, int nn) {
-		// TODO Auto-generated method stub
+		V[x] += nn;
 		
 	}
 
 	private void setRegister(int x, int nn) {
-		// TODO Auto-generated method stub
+		V[x] = (char)nn;
 		
 	}
 
 	private void jump(int nnn) {
-		// TODO Auto-generated method stub
+		pc = (char) nnn;
 		
 	}
 
