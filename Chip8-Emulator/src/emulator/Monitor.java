@@ -42,9 +42,11 @@ public class Monitor {
 		}
 	}
 	
-	public void flipPixel(int x, int y) {
+	public boolean flipPixel(int x, int y) {
+		boolean off = false;
 		if(pixels[x][y].getColor() == WHITE.getRGB()) {
 			pixels[x][y].setColor(BLACK);
+			off = true;
 		}
 		else {
 			System.out.println("Updating pixel "+ x + " " + y);
@@ -57,7 +59,7 @@ public class Monitor {
 			}
 		}
 		
-		
+		return off;
 		//label.repaint();
 	}
 	

@@ -81,7 +81,7 @@ public class Chip8 {
 			clearScreen();
 			break;
 		case 0x1:
-			// jump(nnn);
+			//jump(nnn);
 			break;
 		case 0x6:
 			setRegister(x,nn);
@@ -108,11 +108,13 @@ public class Chip8 {
 		int xCoord = V[x] % 64;
 		int yCoord = V[y] % 32;
 		V[0xf] = 0x0;
-		for(int j = yCoord; j <= yCoord + n;j++) {
-			for(int i = xCoord; i<= xCoord + 4;i++) {
-				if((I & (int)Math.pow(2, 4-(i-xCoord))) == Math.pow(2, 4-(i-xCoord))) {
+		for(int j = yCoord; j < yCoord + n;j++) {
+			for(int i = xCoord; i<= xCoord + 8;i++) {
+				if((mem[I+(j-yCoord)] & (int)Math.pow(2, 8-(i-xCoord))) == Math.pow(2, 8-(i-xCoord))) {
 					System.out.println("flipping pixel");
-					monitor.flipPixel(i, j);
+					if(monitor.flipPixel(i, j)) {
+						V[0xf] = 1;
+					}
 				}
 			}
 		}
