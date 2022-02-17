@@ -113,6 +113,12 @@ public class Monitor {
 		int b = 32;
 		int c = i & b;
 		System.out.println(c);
+		System.out.println(System.nanoTime());
+		System.out.println(System.nanoTime());
+		System.out.println(System.nanoTime());
+		System.out.println(System.nanoTime());
+		System.out.println(System.nanoTime());
+		System.out.println(System.currentTimeMillis());
 	}
 }
 

@@ -6,6 +6,7 @@ public class Chip8 {
 	static final int MEM_SIZE = 0x1000;
 	static final int NUM_REGISTERS = 0x10;
 	static final int STACK_SIZE = 0x10;
+	static final int INSTRUCTS_PER_SEC = 733;
 	
 	//memory 
 	private char[] mem;
@@ -48,13 +49,27 @@ public class Chip8 {
 		if(soundTimer != 0) {
 			soundTimer--;
 		}
+		if(delayTimer != 0) {
+			delayTimer--;
+		}
 	}
 	
 	public void run() {
+		long time = 0;
+		long time2 = 0;
+		long timer_delay = (1/60) * 1000;
+		long delay = (1/INSTRUCTS_PER_SEC) * 1000000000;
 		while(running) {
-			System.out.println((int)pc);
-			int instr = fetch();
-			execute(instr);
+			if(System.currentTimeMillis()>time2 + timer_delay) {
+				decrementTimer();
+				time2 = System.currentTimeMillis();
+			}
+			if(System.nanoTime()>time + delay) {
+				time = System.nanoTime();
+				System.out.println((int)pc);
+				int instr = fetch();
+				execute(instr);
+			}
 		}
 	}
 	
