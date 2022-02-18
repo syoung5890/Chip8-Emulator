@@ -18,6 +18,7 @@ public class Chip8 {
 	private char delayTimer;
 	private char soundTimer;
 	private boolean running;
+	private int stackIndex;
 	
 	private Monitor monitor;
 	private RomReader reader;
@@ -28,7 +29,8 @@ public class Chip8 {
 		stack = new char[STACK_SIZE];
 		running = true;
 		monitor = new Monitor();
-		reader = new RomReader(".\\src\\Roms\\IBMLogo.ch8");
+		reader = new RomReader(".\\src\\Roms\\chip8Logo.ch8");
+		stackIndex = -1;
 		pc = 0x200;
 		I = 0;
 		loadMemory();
@@ -91,10 +93,31 @@ public class Chip8 {
 		System.out.println("Instruction: " + Integer.toHexString(instr));
 		switch(lead) {
 		case 0x0:
-			clearScreen();
+			if(nn== 0xE0) {
+				clearScreen();
+			}
+			else if(nn == 0xEE) {
+				exitSubroutine();
+			}
+			else {
+				uknownCommand(instr);
+			}
+			
 			break;
 		case 0x1:
 			//jump(nnn);
+			break;
+		case 0x2:
+			enterSubroutine(nnn);
+			break;
+		case 0x3:
+			uknownCommand(instr);
+			break;
+		case 0x4:
+			notEqual(x,nn);
+			break;
+		case 0x5:
+			uknownCommand(instr);
 			break;
 		case 0x6:
 			setRegister(x,nn);
@@ -102,24 +125,95 @@ public class Chip8 {
 		case 0x7:
 			addToRegister(x,nn);
 			break;
+		case 0x8:
+			uknownCommand(instr);
+			break;
+		case 0x9:
+			uknownCommand(instr);
+			break;
 		case 0xA:
 			setIndexRegister(nnn);
+			break;
+		case 0xB:
+			uknownCommand(instr);
+			break;
+		case 0xC:
+			uknownCommand(instr);
 			break;
 		case 0xD:
 			draw(x,y,n);
 			break;
+		case 0xE:
+			uknownCommand(instr);
+			break;
+		case 0xF:
+			switch(nn) {
+			case 0x7:
+				uknownCommand(instr);
+				break;
+			case 0x15:
+				uknownCommand(instr);
+				break;
+			case 0x18:
+				uknownCommand(instr);
+				break;
+			case 0x1E:
+				addToIndex(x);
+				break;
+			case 0x0A:
+				uknownCommand(instr);
+				break;
+			case 0x29:
+				uknownCommand(instr);
+				break;
+			case 0x33:
+				uknownCommand(instr);
+				break;
+			case 0x55:
+				uknownCommand(instr);
+				break;
+			case 0x65:
+				uknownCommand(instr);
+				break;
+			}
+			break;
 		default:
-			System.out.println("Uknown instruction " + Integer.toHexString(instr));
-			running = false;
+			uknownCommand(instr);
 			break;
 		}
 	}
 	
+	private void addToIndex(int x) {
+		V[x] += I;
+		if(V[x] > 0xFFF) {
+			V[0xF] = 1;
+		}
+		
+	}
+
+	private void notEqual(int x, int nn) {
+		if(V[x]!= nn) {
+			pc+= 2;
+		}
+		
+	}
+
+	private void exitSubroutine() {
+		pc = pop();
+		
+	}
+
+	private void enterSubroutine(int nnn) {
+		push(pc);
+		jump(nnn);
+		
+	}
+
 	//Needs some fixing up
 	private void draw(int x, int y, int n) {
 		System.out.println(I);
 		int xCoord = V[x] % 64;
-		int yCoord = V[y] % 32;
+		int yCoord = V[y] % 32; 
 		V[0xf] = 0x0;
 		for(int j = yCoord; j < yCoord + n;j++) {
 			for(int i = xCoord; i<= xCoord + 8;i++) {
@@ -160,6 +254,25 @@ public class Chip8 {
 		
 	}
 	
+	private void push(char val) {
+		stackIndex++;
+		stack[stackIndex] = val;
+		
+	}
+	
+	private void uknownCommand(int instr) {
+		System.out.println("Uknown instruction " + Integer.toHexString(instr));
+		running = false;
+	}
+	
+	private char pop() {
+		if(stackIndex!= -1) {
+			stackIndex--;
+			return stack[stackIndex+1];
+		}
+		return 0;
+		
+	}
 	public static void main(String[] args) {
 		Chip8 emu = new Chip8();
 	}
