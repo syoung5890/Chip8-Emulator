@@ -7,6 +7,7 @@ public class Chip8 {
 	static final int NUM_REGISTERS = 0x10;
 	static final int STACK_SIZE = 0x10;
 	static final int INSTRUCTS_PER_SEC = 733;
+	 static final boolean SHIFT_IN_PLACE = false;
 	
 	//memory 
 	private char[] mem;
@@ -22,26 +23,32 @@ public class Chip8 {
 	
 	private Monitor monitor;
 	private RomReader reader;
+	private Keyboard  keyboard;
 	
 	public Chip8() {
 		mem = new char[MEM_SIZE];
 		V = new char[NUM_REGISTERS];
 		stack = new char[STACK_SIZE];
 		running = true;
+		keyboard = new Keyboard();
 		monitor = new Monitor();
-		reader = new RomReader(".\\src\\Roms\\chip8Logo.ch8");
+		monitor.setKeyListener(keyboard);
+		reader = new RomReader(".\\src\\Roms\\snake.ch8");
 		stackIndex = -1;
 		pc = 0x200;
 		I = 0;
 		loadMemory();
+		setFontSprites();
 		run();
 	}
 	
 	private void loadMemory() {
+		for(int i = 0; i< MEM_SIZE;i++) {
+			mem[i] = 0x0;
+		}
 		byte[] rom = reader.getMemoryArray();
 		for(int i = 0;i<rom.length;i++) {
 			mem[0x200+i] = (char)Byte.toUnsignedInt(rom[i]);
-			System.out.println(Integer.toHexString((int)mem[0x200+i]));
 		}
 	}
 	
@@ -60,7 +67,7 @@ public class Chip8 {
 		long time = 0;
 		long time2 = 0;
 		long timer_delay = (1/60) * 1000;
-		long delay = (1/INSTRUCTS_PER_SEC) * 1000000000;
+		long delay =  (long)1000000000/INSTRUCTS_PER_SEC;
 		while(running) {
 			if(System.currentTimeMillis()>time2 + timer_delay) {
 				decrementTimer();
@@ -71,6 +78,7 @@ public class Chip8 {
 				System.out.println((int)pc);
 				int instr = fetch();
 				execute(instr);
+				System.out.println("V0 " + (int)V[0] + " V1 " + (int)V[1] + " V2 " + (int)V[2] + " V3 " + (int)V[3] + " V4 " + (int)V[4] +" VF " + (int)V[0xF]);
 			}
 		}
 	}
@@ -105,19 +113,19 @@ public class Chip8 {
 			
 			break;
 		case 0x1:
-			//jump(nnn);
+			jump(nnn);
 			break;
 		case 0x2:
 			enterSubroutine(nnn);
 			break;
 		case 0x3:
-			uknownCommand(instr);
+			equal(V[x],nn);
 			break;
 		case 0x4:
-			notEqual(x,nn);
+			notEqual(V[x],nn);
 			break;
 		case 0x5:
-			uknownCommand(instr);
+			equal(V[x],V[y]);
 			break;
 		case 0x6:
 			setRegister(x,nn);
@@ -126,54 +134,88 @@ public class Chip8 {
 			addToRegister(x,nn);
 			break;
 		case 0x8:
-			uknownCommand(instr);
+			switch(n) {
+			case 0x0:
+				setVxVy(x,y);
+				break;
+			case 0x1:
+				binaryOr(x,y);
+				break;
+			case 0x2:
+				binaryAnd(x,y);
+				break;
+			case 0x3:
+				logicalXor(x,y);
+				break;
+			case 0x4:
+				addRegisters(x,y);
+				break;
+			case 0x5:
+				subtractRegister(x,y,0);
+				break;
+			case 0x6:
+				shiftRight(x,y);
+				break;
+			case 0x7:
+				subtractRegister(x,y,1);
+				break;
+			case 0xE:
+				shiftLeft(x,y);
+				break;
+			}
 			break;
 		case 0x9:
-			uknownCommand(instr);
+			notEqual(V[x],V[y]);
 			break;
 		case 0xA:
 			setIndexRegister(nnn);
 			break;
 		case 0xB:
-			uknownCommand(instr);
+			//may not work with every program, add configurability if fails
+			jump(nnn + V[0]);
 			break;
 		case 0xC:
-			uknownCommand(instr);
+			rand(x,nn);
 			break;
 		case 0xD:
 			draw(x,y,n);
 			break;
 		case 0xE:
-			uknownCommand(instr);
+			if(nn ==0x9E) {
+				skipIfPressed(x);
+			}
+			else if(nn == 0xA1) {
+				skipIfNotPressed(x);
+			}
 			break;
 		case 0xF:
 			switch(nn) {
 			case 0x7:
-				uknownCommand(instr);
+				readDelayTimer(x);
 				break;
 			case 0x15:
-				uknownCommand(instr);
+				setDelayTimer(x);
 				break;
 			case 0x18:
-				uknownCommand(instr);
+				setSoundTimer(x);
 				break;
 			case 0x1E:
 				addToIndex(x);
 				break;
 			case 0x0A:
-				uknownCommand(instr);
+				getKey(x);
 				break;
 			case 0x29:
-				uknownCommand(instr);
+				setFontSprite(x);
 				break;
 			case 0x33:
-				uknownCommand(instr);
+				binaryDecConvert(x);
 				break;
 			case 0x55:
-				uknownCommand(instr);
+				storeRegistersInMem(x);
 				break;
 			case 0x65:
-				uknownCommand(instr);
+				loadRegistersFromMem(x);
 				break;
 			}
 			break;
@@ -183,20 +225,244 @@ public class Chip8 {
 		}
 	}
 	
+
+	private void binaryDecConvert(int x) {
+		mem[I] = (char) ((V[x] - (V[x] % 100)) / 100);
+		mem[I+1] = (char) ((V[x] -(mem[I]*100)-(V[x]%10))/10);
+		mem[I+2] = (char) ((V[x] - (mem[I]*100)-(mem[I+1]*10)));
+	}
+
+	private void setFontSprite(int x) {
+		System.out.println("entering set font");
+		System.out.println((int)V[x]);
+		switch((int)V[x]){
+		case 0x0:
+			I = 0x50;
+			break;
+		case 0x1:
+			I = 0x55;
+			break;
+		case 0x2:
+			I = 0x5a;
+			break;
+		case 0x3:
+			I = 0x5f;
+			break;
+		case 0x4:
+			I = 0x64;
+			break;
+		case 0x5:
+			I = 0x69;
+			break;
+		case 0x6:
+			I = 0x6e;
+			break;
+		case 0x7:
+			I = 0x73;
+			break;
+		case 0x8:
+			I = 0x78;
+			break;
+		case 0x9:
+			I = 0x7d;
+			break;
+		case 0xA:
+			I = 0x82;
+			break;
+		case 0xB:
+			I = 0x87;
+			break;
+		case 0xC:
+			I = 0x8C;
+			break;
+		case 0xD:
+			I = 0x91;
+			break;
+		case 0xE:
+			I = 0x96;
+			break;
+		case 0xF:
+			I = 0x9b;
+			break;
+		default:
+			System.out.println("Error, charachter sprite not found");
+			break;
+		}
+	}
+
+	private void setSoundTimer(int x) {
+		soundTimer = V[x];
+		
+	}
+
+	private void readDelayTimer(int x) {
+		V[x] = delayTimer;
+		
+	}
+
+	private void getKey(int x) {
+		if(keyboard.isKeyPressed()) {
+			V[x] = keyboard.getKey();
+		}
+		else {
+			pc -= 2;
+		}
+		
+	}
+
+	private void skipIfNotPressed(int x) {
+		if(keyboard.getKey() != V[x]) {
+			pc += 2;
+		}
+		
+	}
+
+	private void skipIfPressed(int x) {
+		if(keyboard.getKey() == V[x]) {
+			pc += 2;
+		}
+		
+	}
+
+	private void shiftRight(int x, int y) {
+		if(SHIFT_IN_PLACE) {
+			if((V[x] & 1) == 1) {
+				V[0xf] = 1;
+			}
+			else {
+				V[0xf] = 0;
+			}
+			V[x] = (char) (((char) (V[x]<<1)) & 0x00FF);
+		}
+		else {
+			if((V[x] & 1) == 1) {
+				V[0xf] = 1;
+			}
+			else {
+				V[0xf] = 0;
+			}
+			V[y] = (char) (((char) (V[x]>>1)) & 0x00FF);
+		}
+		
+	}
+
+	private void shiftLeft(int x, int y) {
+		if(SHIFT_IN_PLACE) {
+			if((V[x] &128) == 128) {
+				V[0xf] = 1;
+			}
+			else {
+				V[0xf] = 0;
+			}
+			V[x] = (char) (((char) (V[x]<<1)) & 0x00FF);
+		}
+		else {
+			if((V[x] & 128) == 128) {
+				V[0xf] = 1;
+			}
+			else {
+				V[0xf] = 0;
+			}
+			V[y] = (char) (((char) (V[x]<<1)) & 0x00FF);
+		}
+		
+	}
+
+	private void logicalXor(int x, int y) {
+		V[x] = (char) (V[x] ^ V[y]);
+		V[x] = (char) (V[x] & 0x00FF);
+		
+	}
+
+	private void binaryAnd(int x, int y) {
+		V[x] = (char) (V[x] & V[y]);
+		V[x] = (char) (V[x] & 0x00FF);
+		
+	}
+
+	private void binaryOr(int x, int y) {
+		V[x] = (char) (V[x] | V[y]);
+		V[x] = (char) (V[x] & 0x00FF);
+		
+	}
+
+	private void subtractRegister(int x, int y, int cse) {
+		if(cse == 0) {
+			V[x] = (char) (V[x] - V[y]);
+			V[x] = (char) (V[x] & 0x00FF);
+		}
+		else {
+			V[x] = (char) (V[y] - V[x]);
+			V[x] = (char) (V[x] & 0x00FF);
+		}
+		
+	}
+
+	private void setVxVy(int x, int y) {
+		V[x] = V[y];
+		
+	}
+
+	private void setDelayTimer(int x) {
+		delayTimer = V[x];
+		
+	}
+
+	private void rand(int x, int nn) {
+		int r = (int)(Math.random() * 0xFF);
+		V[x] = (char) (r & nn);
+		V[x] = (char) (V[x] & 0x00FF);
+	}
+
+	private void equal(int i,int j) {
+		if(i == j) {
+			pc+=2;
+		}
+		
+	}
+	
+	private void notEqual(int i, int j) {
+		if(i!= j) {
+			pc+= 2;
+		}
+	}
+
+	private void loadRegistersFromMem(int x) {
+		for(int i=0;i<=x;i++) {
+			V[i] = mem[I + i];
+			V[i] = (char) (V[i] & 0x00FF);
+		}
+		
+	}
+
+	private void storeRegistersInMem(int x) {
+		for(int i=0;i<=x;i++) {
+			mem[I +i] = V[i];
+		}
+		
+	}
+
+	private void addRegisters(int x, int y) {
+		V[x] = (char) (V[x] + V[y]);
+		if(V[x] + V[y] >255) {
+			V[0xf] = 1;
+		}
+		else {
+			V[0xf] = 0;
+		}
+		V[x] = (char) (V[x] & 0x00FF);
+		
+	}
+
 	private void addToIndex(int x) {
-		V[x] += I;
-		if(V[x] > 0xFFF) {
+		I += V[x];
+		if(I > 0xFFF) {
 			V[0xF] = 1;
 		}
 		
 	}
 
-	private void notEqual(int x, int nn) {
-		if(V[x]!= nn) {
-			pc+= 2;
-		}
-		
-	}
+
 
 	private void exitSubroutine() {
 		pc = pop();
@@ -216,7 +482,15 @@ public class Chip8 {
 		int yCoord = V[y] % 32; 
 		V[0xf] = 0x0;
 		for(int j = yCoord; j < yCoord + n;j++) {
+			if(j>=32) {
+				break;
+			}
+			
 			for(int i = xCoord; i<= xCoord + 8;i++) {
+				if(i>= 64) {
+					break;
+				}
+				
 				if((mem[I+(j-yCoord)] & (int)Math.pow(2, 8-(i-xCoord))) == Math.pow(2, 8-(i-xCoord))) {
 					System.out.println("flipping pixel");
 					if(monitor.flipPixel(i, j)) {
@@ -236,11 +510,13 @@ public class Chip8 {
 
 	private void addToRegister(int x, int nn) {
 		V[x] += nn;
+		V[x] = (char) (V[x] & 0x00FF);
 		
 	}
 
 	private void setRegister(int x, int nn) {
 		V[x] = (char)nn;
+		V[x] = (char) (V[x] & 0x00FF);
 		
 	}
 
@@ -264,7 +540,6 @@ public class Chip8 {
 		System.out.println("Uknown instruction " + Integer.toHexString(instr));
 		running = false;
 	}
-	
 	private char pop() {
 		if(stackIndex!= -1) {
 			stackIndex--;

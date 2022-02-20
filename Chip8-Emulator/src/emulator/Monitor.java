@@ -5,13 +5,14 @@ import java.awt.*;
 import java.awt.image.BufferedImage;
 
 import javax.swing.*;
+import javax.swing.border.EmptyBorder;
 
 public class Monitor {
 	
 	//Size constants
 	private static final int WIDTH = 64;
 	private static final int HEIGHT = 32;
-	private static final int PIXEL_SIZE = 10;
+	private static final int PIXEL_SIZE = 20;
 	
 	//Color constants
 	private static final Color WHITE = new Color(255, 255, 255); 
@@ -32,7 +33,7 @@ public class Monitor {
 		initiateWindow();
 	}
 	
-	//Maps "Pixel" to the 100 actual pixels it encompasses 
+	//Maps "Pixel" to the actual pixels it encompasses 
 	public void loadImage() {
 		for(int i = 0; i<WIDTH*PIXEL_SIZE;i++) {
 			for(int j = 0;j<HEIGHT*PIXEL_SIZE;j++) {
@@ -73,15 +74,18 @@ public class Monitor {
 	
 	private void initiateWindow() {
 		frame = new JFrame("CHIP-8 Emulator");
-		panel = new JPanel();
+		panel = new JPanel(new FlowLayout(0,0,0));
 		label = new JLabel();
 		label.setIcon(new ImageIcon(image));
 		panel.add(label);
 		frame.add(panel);
-		frame.setSize(WIDTH*PIXEL_SIZE,HEIGHT*PIXEL_SIZE);
+		frame.setSize((WIDTH*PIXEL_SIZE),(HEIGHT*PIXEL_SIZE));
 		frame.setResizable(false);
+		frame.pack();
 		frame.setVisible(true);
+		
 	}
+	
 	
 	public void setPixel(int x,int y, int color) {
 		if(color == 1) {
@@ -108,17 +112,17 @@ public class Monitor {
 		label.revalidate();
 	}
 	
+	public void setKeyListener(Keyboard keyboard) {
+		frame.addKeyListener(keyboard);
+	}
+	
 	public static void main(String[]args) {
-		int i = 67;
-		int b = 32;
-		int c = i & b;
-		System.out.println(c);
-		System.out.println(System.nanoTime());
-		System.out.println(System.nanoTime());
-		System.out.println(System.nanoTime());
-		System.out.println(System.nanoTime());
-		System.out.println(System.nanoTime());
-		System.out.println(System.currentTimeMillis());
+		Monitor monitor = new Monitor();
+		Keyboard keyboard = new Keyboard();
+		monitor.setKeyListener(keyboard);
+		monitor.flipPixel(63, 31);
+		monitor.flipPixel(0, 0);
+		
 	}
 }
 
