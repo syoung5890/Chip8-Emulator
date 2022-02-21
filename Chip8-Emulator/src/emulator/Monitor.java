@@ -50,7 +50,7 @@ public class Monitor {
 			off = true;
 		}
 		else {
-			System.out.println("Updating pixel "+ x + " " + y);
+			//System.out.println("Updating pixel "+ x + " " + y);
 			pixels[x][y].setColor(WHITE);
 		}
 		
@@ -61,7 +61,6 @@ public class Monitor {
 		}
 		
 		return off;
-		//label.repaint();
 	}
 	
 	private void setPixels() {

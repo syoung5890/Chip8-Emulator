@@ -6,8 +6,8 @@ public class Chip8 {
 	static final int MEM_SIZE = 0x1000;
 	static final int NUM_REGISTERS = 0x10;
 	static final int STACK_SIZE = 0x10;
-	static final int INSTRUCTS_PER_SEC = 733;
-	 static final boolean SHIFT_IN_PLACE = false;
+	static final int INSTRUCTS_PER_SEC = 2;
+	 static final boolean SHIFT_IN_PLACE =  false;
 	
 	//memory 
 	private char[] mem;
@@ -33,7 +33,7 @@ public class Chip8 {
 		keyboard = new Keyboard();
 		monitor = new Monitor();
 		monitor.setKeyListener(keyboard);
-		reader = new RomReader(".\\src\\Roms\\snake.ch8");
+		reader = new RomReader(".\\src\\Roms\\KeypadTest.ch8");
 		stackIndex = -1;
 		pc = 0x200;
 		I = 0;
@@ -492,7 +492,6 @@ public class Chip8 {
 				}
 				
 				if((mem[I+(j-yCoord)] & (int)Math.pow(2, 8-(i-xCoord))) == Math.pow(2, 8-(i-xCoord))) {
-					System.out.println("flipping pixel");
 					if(monitor.flipPixel(i, j)) {
 						V[0xf] = 1;
 					}
@@ -516,7 +515,7 @@ public class Chip8 {
 
 	private void setRegister(int x, int nn) {
 		V[x] = (char)nn;
-		V[x] = (char) (V[x] & 0x00FF);
+		V[x] = (char) (V[x] & 0xFF);
 		
 	}
 
