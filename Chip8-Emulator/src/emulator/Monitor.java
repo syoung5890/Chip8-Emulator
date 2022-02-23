@@ -12,7 +12,7 @@ public class Monitor {
 	//Size constants
 	private static final int WIDTH = 64;
 	private static final int HEIGHT = 32;
-	private static final int PIXEL_SIZE = 20;
+	private static final int PIXEL_SIZE = 10;
 	
 	//Color constants
 	private static final Color WHITE = new Color(255, 255, 255); 
@@ -31,6 +31,7 @@ public class Monitor {
 		image = new BufferedImage(WIDTH * PIXEL_SIZE, HEIGHT * PIXEL_SIZE,BufferedImage.TYPE_INT_RGB);
 		loadImage();
 		initiateWindow();
+		
 	}
 	
 	//Maps "Pixel" to the actual pixels it encompasses 
@@ -50,7 +51,7 @@ public class Monitor {
 			off = true;
 		}
 		else {
-			//System.out.println("Updating pixel "+ x + " " + y);
+			System.out.println("Updating pixel "+ x + " " + y);
 			pixels[x][y].setColor(WHITE);
 		}
 		

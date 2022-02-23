@@ -1,13 +1,15 @@
  package emulator;
 
+import java.util.Random;
+
 public class Chip8 {
 	
 	//constants
 	static final int MEM_SIZE = 0x1000;
 	static final int NUM_REGISTERS = 0x10;
 	static final int STACK_SIZE = 0x10;
-	static final int INSTRUCTS_PER_SEC = 2;
-	 static final boolean SHIFT_IN_PLACE =  false;
+	static final int INSTRUCTS_PER_SEC = 500;
+	static final boolean SHIFT_IN_PLACE =  true;
 	
 	//memory 
 	private char[] mem;
@@ -21,19 +23,23 @@ public class Chip8 {
 	private boolean running;
 	private int stackIndex;
 	
+	private Random random;
 	private Monitor monitor;
 	private RomReader reader;
 	private Keyboard  keyboard;
+	private AudioController audio;
 	
 	public Chip8() {
 		mem = new char[MEM_SIZE];
 		V = new char[NUM_REGISTERS];
 		stack = new char[STACK_SIZE];
 		running = true;
+		random = new Random();
+		audio = new AudioController();
 		keyboard = new Keyboard();
 		monitor = new Monitor();
 		monitor.setKeyListener(keyboard);
-		reader = new RomReader(".\\src\\Roms\\KeypadTest.ch8");
+		reader = new RomReader(".\\src\\Roms\\octoachip8story.ch8");
 		stackIndex = -1;
 		pc = 0x200;
 		I = 0;
@@ -72,13 +78,23 @@ public class Chip8 {
 			if(System.currentTimeMillis()>time2 + timer_delay) {
 				decrementTimer();
 				time2 = System.currentTimeMillis();
+				if(soundTimer >0) {
+					audio.startSound();
+				}
+				else {
+					audio.stopSound();
+				}
 			}
 			if(System.nanoTime()>time + delay) {
 				time = System.nanoTime();
 				System.out.println((int)pc);
 				int instr = fetch();
 				execute(instr);
-				System.out.println("V0 " + (int)V[0] + " V1 " + (int)V[1] + " V2 " + (int)V[2] + " V3 " + (int)V[3] + " V4 " + (int)V[4] +" VF " + (int)V[0xF]);
+				System.out.println("V0 " + (int)V[0] + " V1 " + (int)V[1] + " V2 " + (int)V[2] + " V3 " + (int)V[3] + " V4 " + (int)V[4] 
+					+" V5 " +(int)V[0x5]	+" V6 " +(int)V[0x6]	+" V7 " +(int)V[0x7]+" V8 " +(int)V[0x8]	
+							+" V9 " +(int)V[0x9]+" Va " +(int)V[0xa]+" VB " +(int)V[0xb]+" VC " +(int)V[0xc]	
+									+" VD " +(int)V[0xD]
+											+" VE " +(int)V[0xE]+" VF " + (int)V[0xF]+ " I "+I);
 			}
 		}
 	}
@@ -227,9 +243,9 @@ public class Chip8 {
 	
 
 	private void binaryDecConvert(int x) {
-		mem[I] = (char) ((V[x] - (V[x] % 100)) / 100);
-		mem[I+1] = (char) ((V[x] -(mem[I]*100)-(V[x]%10))/10);
-		mem[I+2] = (char) ((V[x] - (mem[I]*100)-(mem[I+1]*10)));
+		mem[I] = (char) (V[x] / 100);
+		mem[I+1] = (char) ((V[x]%100)/10);
+		mem[I+2] = (char) ((V[x]%100)%10);
 	}
 
 	private void setFontSprite(int x) {
@@ -318,7 +334,7 @@ public class Chip8 {
 	}
 
 	private void skipIfPressed(int x) {
-		if(keyboard.getKey() == V[x]) {
+		if((keyboard.getKey() == V[x])&& keyboard.isKeyPressed()) {
 			pc += 2;
 		}
 		
@@ -332,16 +348,17 @@ public class Chip8 {
 			else {
 				V[0xf] = 0;
 			}
-			V[x] = (char) (((char) (V[x]<<1)) & 0x00FF);
+			V[x] = (char) (((char) (V[x]>>>1)) & 0x00FF);
 		}
 		else {
+			V[x] = V[y];
 			if((V[x] & 1) == 1) {
 				V[0xf] = 1;
 			}
 			else {
 				V[0xf] = 0;
 			}
-			V[y] = (char) (((char) (V[x]>>1)) & 0x00FF);
+			V[x] = (char) (((char) (V[x]>>>1)) & 0x00FF);
 		}
 		
 	}
@@ -357,13 +374,15 @@ public class Chip8 {
 			V[x] = (char) (((char) (V[x]<<1)) & 0x00FF);
 		}
 		else {
-			if((V[x] & 128) == 128) {
+			V[x] = V[y];
+			
+			if((V[x] & 0x80) == 0x80) {
 				V[0xf] = 1;
 			}
 			else {
 				V[0xf] = 0;
 			}
-			V[y] = (char) (((char) (V[x]<<1)) & 0x00FF);
+			V[x] = (char) (((char) (V[x]<<1)) & 0x00FF);
 		}
 		
 	}
@@ -385,15 +404,25 @@ public class Chip8 {
 		V[x] = (char) (V[x] & 0x00FF);
 		
 	}
-
+	//add vf flag to this method
 	private void subtractRegister(int x, int y, int cse) {
 		if(cse == 0) {
-			V[x] = (char) (V[x] - V[y]);
-			V[x] = (char) (V[x] & 0x00FF);
+			if(V[x] > V[y]) {
+				V[0xf] = 1;
+			}
+			else {
+				V[0xf] = 0;
+			}
+			V[x] = (char) (((V[x] - V[y]))&0xFF);
 		}
 		else {
-			V[x] = (char) (V[y] - V[x]);
-			V[x] = (char) (V[x] & 0x00FF);
+			if(V[y] > V[x]) {
+				V[0xf] = 1;
+			}
+			else {
+				V[0xf] = 0;
+			}
+			V[x] = (char) ((V[y] - V[x])&0xFF);
 		}
 		
 	}
@@ -409,9 +438,8 @@ public class Chip8 {
 	}
 
 	private void rand(int x, int nn) {
-		int r = (int)(Math.random() * 0xFF);
+		int r = (int)(random.nextInt(0xFF));
 		V[x] = (char) (r & nn);
-		V[x] = (char) (V[x] & 0x00FF);
 	}
 
 	private void equal(int i,int j) {
@@ -443,22 +471,25 @@ public class Chip8 {
 	}
 
 	private void addRegisters(int x, int y) {
-		V[x] = (char) (V[x] + V[y]);
 		if(V[x] + V[y] >255) {
 			V[0xf] = 1;
 		}
 		else {
 			V[0xf] = 0;
 		}
-		V[x] = (char) (V[x] & 0x00FF);
+		V[x] = (char) ( (V[x] + V[y]) & 0x00FF);
 		
 	}
 
 	private void addToIndex(int x) {
-		I += V[x];
-		if(I > 0xFFF) {
+		
+		if(I +V[x]> 0xFFF) {
 			V[0xF] = 1;
 		}
+		else {
+			V[0xF] = 0;
+		}
+		I = (I+ V[x]) & 0xFFF;
 		
 	}
 
@@ -477,7 +508,6 @@ public class Chip8 {
 
 	//Needs some fixing up
 	private void draw(int x, int y, int n) {
-		System.out.println(I);
 		int xCoord = V[x] % 64;
 		int yCoord = V[y] % 32; 
 		V[0xf] = 0x0;
@@ -486,12 +516,12 @@ public class Chip8 {
 				break;
 			}
 			
-			for(int i = xCoord; i<= xCoord + 8;i++) {
+			for(int i = xCoord; i< xCoord + 8;i++) {
 				if(i>= 64) {
 					break;
 				}
 				
-				if((mem[I+(j-yCoord)] & (int)Math.pow(2, 8-(i-xCoord))) == Math.pow(2, 8-(i-xCoord))) {
+				if((mem[I+(j-yCoord)] & (int)Math.pow(2, 7-(i-xCoord))) == (int)Math.pow(2, 7-(i-xCoord))) {
 					if(monitor.flipPixel(i, j)) {
 						V[0xf] = 1;
 					}
@@ -546,6 +576,15 @@ public class Chip8 {
 		}
 		return 0;
 		
+	}
+	
+	public void status() {
+		System.out.println("V0: " + (int)V[0] + " V1: " + (int)V[1] + " V2: " + (int)V[2]+ " V3: " + (int)V[3]);
+		System.out.println("V4: " + (int)V[4] + " V5: " +(int) V[5] + " V6: " + (int)V[6]+ " V7: " +(int) V[7]);
+		System.out.println("V8: " + (int)V[8] + " V9: " +(int) V[9] + " VA: " + (int)V[0xA]+ " VB: " +(int) V[0xB]);
+		System.out.println("VC: " + (int)V[0xc] + " VD: " +(int) V[0xD] + " VE: " +(int) V[0xE]+ " VF: " + (int)V[0xF]);
+		System.out.println("I: " + (int)I + "  PC: " +(int) pc + " DelayTimer " + (int)delayTimer+ " soundTimer " + (int)soundTimer);
+		System.out.println("MEM[I]: "+(int)mem[I]);
 	}
 	public static void main(String[] args) {
 		Chip8 emu = new Chip8();
