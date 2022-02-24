@@ -1,6 +1,10 @@
  package emulator;
 
 import java.util.Random;
+/*
+ * Author: Stephen Young
+ * Created: 2022
+ */
 
 public class Chip8 {
 	
@@ -8,8 +12,9 @@ public class Chip8 {
 	static final int MEM_SIZE = 0x1000;
 	static final int NUM_REGISTERS = 0x10;
 	static final int STACK_SIZE = 0x10;
-	static final int INSTRUCTS_PER_SEC = 500;
-	static final boolean SHIFT_IN_PLACE =  true;
+	static final int INSTRUCTS_PER_SEC = 733;
+	static final boolean SHIFT_IN_PLACE =  false;
+	static final boolean JUMP_ADD_REGISTER = false;
 	
 	//memory 
 	private char[] mem;
@@ -39,7 +44,7 @@ public class Chip8 {
 		keyboard = new Keyboard();
 		monitor = new Monitor();
 		monitor.setKeyListener(keyboard);
-		reader = new RomReader(".\\src\\Roms\\octoachip8story.ch8");
+		reader = new RomReader(".\\src\\Roms\\SpaceInvaders.ch8");
 		stackIndex = -1;
 		pc = 0x200;
 		I = 0;
@@ -63,10 +68,15 @@ public class Chip8 {
 	public void decrementTimer() {
 		if(soundTimer != 0) {
 			soundTimer--;
+			audio.startSound();
+		}
+		else {
+			audio.stopSound();
 		}
 		if(delayTimer != 0) {
 			delayTimer--;
 		}
+	
 	}
 	
 	public void run() {
@@ -78,12 +88,6 @@ public class Chip8 {
 			if(System.currentTimeMillis()>time2 + timer_delay) {
 				decrementTimer();
 				time2 = System.currentTimeMillis();
-				if(soundTimer >0) {
-					audio.startSound();
-				}
-				else {
-					audio.stopSound();
-				}
 			}
 			if(System.nanoTime()>time + delay) {
 				time = System.nanoTime();
@@ -150,35 +154,7 @@ public class Chip8 {
 			addToRegister(x,nn);
 			break;
 		case 0x8:
-			switch(n) {
-			case 0x0:
-				setVxVy(x,y);
-				break;
-			case 0x1:
-				binaryOr(x,y);
-				break;
-			case 0x2:
-				binaryAnd(x,y);
-				break;
-			case 0x3:
-				logicalXor(x,y);
-				break;
-			case 0x4:
-				addRegisters(x,y);
-				break;
-			case 0x5:
-				subtractRegister(x,y,0);
-				break;
-			case 0x6:
-				shiftRight(x,y);
-				break;
-			case 0x7:
-				subtractRegister(x,y,1);
-				break;
-			case 0xE:
-				shiftLeft(x,y);
-				break;
-			}
+			x8XXX(x,y,n);
 			break;
 		case 0x9:
 			notEqual(V[x],V[y]);
@@ -188,7 +164,12 @@ public class Chip8 {
 			break;
 		case 0xB:
 			//may not work with every program, add configurability if fails
+			if(JUMP_ADD_REGISTER) {
+				jump(nnn+V[x]);
+			}
+			else {
 			jump(nnn + V[0]);
+			}
 			break;
 		case 0xC:
 			rand(x,nn);
@@ -205,35 +186,7 @@ public class Chip8 {
 			}
 			break;
 		case 0xF:
-			switch(nn) {
-			case 0x7:
-				readDelayTimer(x);
-				break;
-			case 0x15:
-				setDelayTimer(x);
-				break;
-			case 0x18:
-				setSoundTimer(x);
-				break;
-			case 0x1E:
-				addToIndex(x);
-				break;
-			case 0x0A:
-				getKey(x);
-				break;
-			case 0x29:
-				setFontSprite(x);
-				break;
-			case 0x33:
-				binaryDecConvert(x);
-				break;
-			case 0x55:
-				storeRegistersInMem(x);
-				break;
-			case 0x65:
-				loadRegistersFromMem(x);
-				break;
-			}
+			xFXXX(x,nn);
 			break;
 		default:
 			uknownCommand(instr);
@@ -241,6 +194,72 @@ public class Chip8 {
 		}
 	}
 	
+
+	private void xFXXX(int x, int nn) {
+		switch(nn) {
+		case 0x7:
+			readDelayTimer(x);
+			break;
+		case 0x15:
+			setDelayTimer(x);
+			break;
+		case 0x18:
+			setSoundTimer(x);
+			break;
+		case 0x1E:
+			addToIndex(x);
+			break;
+		case 0x0A:
+			getKey(x);
+			break;
+		case 0x29:
+			setFontSprite(x);
+			break;
+		case 0x33:
+			binaryDecConvert(x);
+			break;
+		case 0x55:
+			storeRegistersInMem(x);
+			break;
+		case 0x65:
+			loadRegistersFromMem(x);
+			break;
+		}
+		
+	}
+
+	private void x8XXX(int x, int y, int n) {
+		switch(n) {
+		case 0x0:
+			setVxVy(x,y);
+			break;
+		case 0x1:
+			binaryOr(x,y);
+			break;
+		case 0x2:
+			binaryAnd(x,y);
+			break;
+		case 0x3:
+			logicalXor(x,y);
+			break;
+		case 0x4:
+			addRegisters(x,y);
+			break;
+		case 0x5:
+			subtractRegister(x,y,0);
+			break;
+		case 0x6:
+			shiftRight(x,y);
+			break;
+		case 0x7:
+			subtractRegister(x,y,1);
+			break;
+		case 0xE:
+			shiftLeft(x,y);
+			break;
+		}
+		
+	}
 
 	private void binaryDecConvert(int x) {
 		mem[I] = (char) (V[x] / 100);
@@ -560,8 +579,13 @@ public class Chip8 {
 	}
 	
 	private void push(char val) {
+		if(stackIndex == STACK_SIZE) {
+			System.out.println("Stack Full");
+		}
+		else {
 		stackIndex++;
 		stack[stackIndex] = val;
+		}
 		
 	}
 	

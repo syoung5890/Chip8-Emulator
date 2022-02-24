@@ -18,11 +18,13 @@ public class AudioController {
 	}
 	
 	public void startSound() {
-		midiChannels[0].noteOn(60, 200);
+		midiChannels[0].noteOn(60, 50);
 	}
 	
 	
 	public void stopSound() {
-		midiChannels[0].noteOff(60, 200);
+		if(midiChannels[0]!= null) {
+			midiChannels[0].noteOff(60, 50);
+		}
 	}
 }
