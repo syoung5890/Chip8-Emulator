@@ -5,6 +5,9 @@
 [Chip 8 documentation](https://chip-8.github.io/links/)
 ### Controls
 |1 = 1|2 = 2|3 = 3|4 = C|
+
 |Q = 4|W = 5|E = 6|R = D|
+
 |A = 7|S = 8|D = 9|F = E|
+
 |Z = A|X = 0|C = B|F = V|
